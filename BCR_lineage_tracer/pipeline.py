@@ -1,26 +1,23 @@
 """
 pipeline.py
 ===========
-run()  —  top-level orchestration function that wires together the loader,
-tracer, visualiser, and mutation-table exporter for every clone in a dataset.
+run() — top-level orchestration: loader → tracer → visualiser → Excel export.
 
-Called by both the CLI (__main__.py) and the GUI (gui.py).
+Outputs per run
+---------------
+  tree_<clone_id>.png       Cladogram with seq1/seq2/… node labels and a
+                            numeric x-axis showing mutation distance.
 
-Parameters
-----------
-input_path          : path to the .xlsx workbook
-output_dir          : directory to write tree PNGs and mutation_table.xlsx
-clone_id            : if given, process only this one clone
-collapse_threshold  : branch-length cutoff for polytomy collapsing
-refine_isotypes     : enable isotype-aware NNI refinement
-max_clones          : process at most this many clones (useful for debugging)
-progress_cb         : optional callable(str) for live log messages
-                      (GUI passes a function that appends to the log widget;
-                       CLI leaves it None and we print() instead)
+  node_labels.xlsx          One sheet per clone (or combined if many clones).
+                            Columns:
+                              clone_id | seq_label | cell_id | isotype
+                              | sample_id | cluster_annotated
+                            Maps every seqN label back to the original cell ID
+                            so the tree and table can be cross-referenced.
 
-Returns
--------
-(n_ok, n_skip, n_fail, combined_mutation_table)
+  mutation_table.xlsx       Per-edge mutation events.  Now includes a
+                            seq_label column so rows can be linked to the tree
+                            by label name rather than raw cell ID.
 """
 
 from __future__ import annotations
@@ -51,13 +48,13 @@ def run(
 
     os.makedirs(output_dir, exist_ok=True)
 
-    def log(msg: str):
+    def log(msg: str) -> None:
         if progress_cb:
             progress_cb(msg)
         else:
             print(msg)
 
-    # ── 1. Load data ────────────────────────────────────────────────────────
+    # ── 1. Load ───────────────────────────────────────────────────────────
     loader = BCRTreeLoader(input_path).load()
     log(f"Format : {loader.format}")
     log(f"Rows   : {loader.df.shape[0]}")
@@ -67,20 +64,27 @@ def run(
 
     if clone_id:
         if clone_id not in clones:
-            raise ValueError(f"clone_id '{clone_id}' not found in the input file.")
+            raise ValueError(
+                f"clone_id '{clone_id}' not found in the input file.")
         clones = {clone_id: clones[clone_id]}
 
     if max_clones:
         clones = dict(itertools.islice(clones.items(), max_clones))
 
-    # ── 2. Choose colour axis ───────────────────────────────────────────────
-    # heavy-only → colour by tissue/organ (sample_id)
-    # paired     → colour by isotype (c_call)
+    # ── 2. Colour axis ────────────────────────────────────────────────────
     color_by = "sample_id" if loader.format == "heavy_only" else "isotype"
 
-    # ── 3. Process clones ───────────────────────────────────────────────────
+    # ── 3. Process each clone ─────────────────────────────────────────────
     all_mutation_tables: List[pd.DataFrame] = []
+    all_label_tables:    List[pd.DataFrame] = []
     n_ok = n_skip = n_fail = 0
+
+    # Build a lookup from cell_id → CellRecord for metadata enrichment
+    record_lookup: Dict[str, CellRecord] = {
+        r.cell_id: r
+        for recs in clones.values()
+        for r in recs
+    }
 
     for cid, records in clones.items():
         n_obs = sum(1 for r in records if not r.is_germline)
@@ -102,9 +106,9 @@ def run(
             n_fail += 1
             continue
 
-        # ── visualisation
+        # ── visualisation — returns cell_id → seq_label mapping
         out_png = os.path.join(output_dir, f"tree_{cid}.png")
-        fig, _ = plot_tree(
+        fig, _, cell_id_map = plot_tree(
             tree,
             color_by=color_by,
             shape_by="cluster_annotated",
@@ -113,24 +117,64 @@ def run(
         )
         plt.close("all")
 
-        # ── mutation table
+        # ── node label table ──────────────────────────────────────────────
+        # One row per observed cell: seq_label | cell_id | metadata
+        label_rows = []
+        for cell_id, seq_label in sorted(
+            cell_id_map.items(), key=lambda kv: kv[1]   # sort by seq1,seq2,…
+        ):
+            rec = record_lookup.get(cell_id)
+            label_rows.append({
+                "clone_id":          cid,
+                "seq_label":         seq_label,
+                "cell_id":           cell_id,
+                "isotype":           rec.isotype           if rec else "",
+                "sample_id":         rec.sample_id         if rec else "",
+                "cluster_annotated": rec.cluster_annotated if rec else "",
+            })
+        if label_rows:
+            all_label_tables.append(pd.DataFrame(label_rows))
+
+        # ── mutation table — add seq_label column ─────────────────────────
         mt = tracer.mutation_table()
+        mt.insert(
+            mt.columns.get_loc("node") + 1,   # place right after "node"
+            "seq_label",
+            mt["node"].map(cell_id_map).fillna(
+                mt["node"].map(                # internal nodes get anc label
+                    {c.name: f"anc"            # placeholder; viz assigned them
+                     for c in tree.find_clades() if not c.is_terminal()}
+                )
+            ).fillna(""),
+        )
         all_mutation_tables.append(mt)
 
-        log(f"  ✓     clone {cid}  |  {n_obs} cells  |  {len(mt)} edges  →  {out_png}")
+        log(f"  ✓     clone {cid}  |  {n_obs} cells  "
+            f"|  {len(cell_id_map)} seq labels  "
+            f"|  {len(mt)} edges  →  {out_png}")
         n_ok += 1
 
-    # ── 4. Export combined mutation table ───────────────────────────────────
-    combined = (
+    # ── 4. Export node label table ────────────────────────────────────────
+    label_path = os.path.join(output_dir, "node_labels.xlsx")
+    if all_label_tables:
+        combined_labels = pd.concat(all_label_tables, ignore_index=True)
+        combined_labels.to_excel(label_path, index=False)
+        log(f"Node label table → {label_path}")
+    else:
+        combined_labels = pd.DataFrame()
+
+    # ── 5. Export mutation table ──────────────────────────────────────────
+    combined_mut = (
         pd.concat(all_mutation_tables, ignore_index=True)
         if all_mutation_tables
         else pd.DataFrame()
     )
     mut_path = os.path.join(output_dir, "mutation_table.xlsx")
-    combined.to_excel(mut_path, index=False)
+    combined_mut.to_excel(mut_path, index=False)
 
     log("")
-    log(f"Done  —  {n_ok} trees built,  {n_skip} skipped (<2 cells),  {n_fail} failed.")
-    log(f"Mutation table → {mut_path}")
+    log(f"Done  —  {n_ok} trees built,  "
+        f"{n_skip} skipped (<2 cells),  {n_fail} failed.")
+    log(f"Mutation table  → {mut_path}")
 
-    return n_ok, n_skip, n_fail, combined
+    return n_ok, n_skip, n_fail, combined_mut

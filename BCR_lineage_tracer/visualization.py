@@ -1,22 +1,27 @@
 """
 visualization.py
 ================
-plot_tree() — renders a BCR clonal lineage tree as a rectangular cladogram
-using matplotlib (headless-safe Agg backend).
+plot_tree() — renders a BCR clonal lineage tree as a rectangular cladogram.
 
-Visual design decisions
------------------------
-- No axes frame: all four spines are hidden so no black box encloses the tree
-  and long leaf labels at the right edge are never clipped by a border line.
-- Legend placement: the axes right boundary is capped at 70 % of the figure
-  width, and the legend is anchored at axes x = 1.02 (2 % gap).  The figure
-  canvas is widened automatically based on the number of legend entries, so
-  the legend never overlaps the tree area even for clones with many distinct
-  isotypes or cell types.
-- Node colour encodes the `color_by` attribute (isotype for paired data,
-  sample_id / tissue for heavy-only data).
-- Node shape encodes `cluster_annotated` (cell-type / GC-subset).
-- The germline root node is drawn larger (160 pt²) with a square marker.
+Node labels
+-----------
+Observed leaf nodes are shown as  seq1, seq2, seq3 …  (assigned in the order
+leaves appear top-to-bottom in the tree).  Internal inferred-ancestor nodes
+are labelled  anc1, anc2 …  The germline root always shows "Germline".
+
+The mapping  {original_cell_id → short_label}  is returned as a third element
+of the tuple so the pipeline can add it to the Excel output.
+
+X-axis
+------
+The cumulative mutation-distance axis now shows numeric tick marks so readers
+can read off exact distances from the figure.
+
+Visual design
+-------------
+- No axes frame (all four spines hidden).
+- Legend anchored in figure coordinates so it never overlaps tree labels.
+- Axes occupy the left 68 % of the figure; the remaining 32 % is label + legend space.
 """
 
 from __future__ import annotations
@@ -24,9 +29,10 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Tuple
 
 import matplotlib
-matplotlib.use("Agg")   # must be set before pyplot import
+matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 from matplotlib.lines import Line2D
 from Bio.Phylo.BaseTree import Clade, Tree
 
@@ -36,7 +42,7 @@ from .constants import MARKER_CYCLE
 # ── layout ────────────────────────────────────────────────────────────────────
 
 def _layout(tree: Tree) -> Tuple[Dict[Clade, float], Dict[Clade, float]]:
-    """Return x (cumulative branch length) and y (leaf slot) dicts."""
+    """Return x (cumulative branch length) and y (leaf slot) position dicts."""
     x_pos: Dict[Clade, float] = {}
 
     def _assign_x(cl: Clade, x: float) -> None:
@@ -63,7 +69,6 @@ def _layout(tree: Tree) -> Tuple[Dict[Clade, float], Dict[Clade, float]]:
 
 
 def _build_color_map(tree: Tree, color_by: str) -> Dict[str, object]:
-    """Map each unique value of `color_by` to a matplotlib colour."""
     vals = sorted({str(getattr(c, color_by, "?")) for c in tree.find_clades()})
     cmap = plt.get_cmap("tab10")
     color_map: Dict[str, object] = {}
@@ -78,9 +83,58 @@ def _build_color_map(tree: Tree, color_by: str) -> Dict[str, object]:
 
 
 def _build_shape_map(tree: Tree, shape_by: str) -> Dict[str, str]:
-    """Map each unique value of `shape_by` to a matplotlib marker string."""
     vals = sorted({str(getattr(c, shape_by, "?")) for c in tree.find_clades()})
     return {v: MARKER_CYCLE[i % len(MARKER_CYCLE)] for i, v in enumerate(vals)}
+
+
+def _build_label_map(tree: Tree) -> Tuple[Dict[str, str], Dict[str, str]]:
+    """Assign short display labels to every clade.
+
+    Rules
+    -----
+    - Germline root            → "Germline"
+    - Observed leaf nodes      → "seq1", "seq2", … (top-to-bottom order)
+    - Internal ancestral nodes → "anc1", "anc2", … (pre-order traversal)
+
+    Returns
+    -------
+    display_map  : {clade.name → short_label}   used for tree drawing
+    cell_id_map  : {original_cell_id → short_label}  returned to pipeline
+                   (only contains observed cells, not Germline / ancestral)
+    """
+    display_map: Dict[str, str]  = {}
+    cell_id_map: Dict[str, str]  = {}
+
+    # Germline first
+    if tree.root.name:
+        display_map[tree.root.name] = "Germline"
+
+    # Observed leaves  — numbered in top-to-bottom order
+    seq_counter = 1
+    for leaf in tree.get_terminals():
+        if getattr(leaf, "is_germline", False):
+            display_map[leaf.name] = "Germline"
+        else:
+            label = f"seq{seq_counter}"
+            seq_counter += 1
+            display_map[leaf.name] = label
+            if leaf.name:
+                cell_id_map[leaf.name] = label
+
+    # Internal nodes (inferred ancestors) — numbered in pre-order
+    anc_counter = 1
+    for cl in tree.find_clades(order="preorder"):
+        if cl.is_terminal():
+            continue
+        if getattr(cl, "is_germline", False):
+            if cl.name:
+                display_map[cl.name] = "Germline"
+        else:
+            if cl.name and cl.name not in display_map:
+                display_map[cl.name] = f"anc{anc_counter}"
+                anc_counter += 1
+
+    return display_map, cell_id_map
 
 
 # ── main public function ──────────────────────────────────────────────────────
@@ -93,7 +147,7 @@ def plot_tree(
     output_path: Optional[str] = None,
     ax: Optional[plt.Axes] = None,
     fig: Optional[plt.Figure] = None,
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> Tuple[plt.Figure, plt.Axes, Dict[str, str]]:
     """Draw a rectangular cladogram for `tree`.
 
     Parameters
@@ -107,23 +161,14 @@ def plot_tree(
 
     Returns
     -------
-    (fig, ax) tuple
+    (fig, ax, cell_id_map)
+        cell_id_map : {original_cell_id → seq_label}  for Excel annotation
     """
-    x_pos, y_pos = _layout(tree)
-    n_leaves = len(tree.get_terminals())
+    x_pos, y_pos   = _layout(tree)
+    display_map, cell_id_map = _build_label_map(tree)
+    n_leaves        = len(tree.get_terminals())
 
     # ── figure sizing ─────────────────────────────────────────────────────
-    # We need enough horizontal space for:
-    #   • the tree itself (drawn inside axes)
-    #   • leaf-label text that extends past the axes right edge
-    #   • the legend panel to the right of the axes
-    #
-    # Strategy:
-    #   - Keep the tree axes occupying the LEFT 70 % of the figure width.
-    #     This reserves 30 % for labels + legend, regardless of figure size.
-    #   - Widen the figure canvas based on the number of legend entries so
-    #     the legend always fits without overlapping.
-
     if ax is None:
         n_color = len({str(getattr(c, color_by, "?"))
                        for c in tree.find_clades()})
@@ -132,19 +177,17 @@ def plot_tree(
                    if shape_by else 0)
         n_legend_rows = n_color + n_shape
 
-        # Base tree panel: 10 inches; legend panel: min 3.5 in, grows with entries
         legend_panel = max(3.5, n_legend_rows * 0.22)
         tree_panel   = 10.0
         fig_width    = tree_panel + legend_panel
         fig_height   = max(3.0, 0.35 * n_leaves)
         fig, ax = plt.subplots(figsize=(fig_width, fig_height))
 
-    # Shrink the axes so it only occupies the left portion of the figure.
-    # right=0.68 means the axes box ends at 68 % of figure width.
-    # The remaining 32 % is shared by leaf label overflow and the legend.
-    fig.subplots_adjust(left=0.02, right=0.68, top=0.96, bottom=0.04)
+    # Axes occupy the left 68 % of figure width.
+    # The remaining 32 % is reserved for seq labels and the legend.
+    fig.subplots_adjust(left=0.02, right=0.68, top=0.96, bottom=0.06)
 
-    # ── draw branches (rectangular cladogram) ────────────────────────────
+    # ── draw branches ────────────────────────────────────────────────────
     for cl in tree.find_clades():
         if not cl.clades:
             continue
@@ -160,7 +203,7 @@ def plot_tree(
     color_map = _build_color_map(tree, color_by)
     shape_map = _build_shape_map(tree, shape_by) if shape_by else {}
 
-    # ── draw nodes ────────────────────────────────────────────────────────
+    # ── draw nodes and labels ─────────────────────────────────────────────
     for cl in tree.find_clades():
         x, y    = x_pos[cl], y_pos[cl]
         cv      = str(getattr(cl, color_by, "?"))
@@ -182,15 +225,14 @@ def plot_tree(
             zorder=3,
         )
 
-        # Label all leaf nodes and the germline root
-        if cl.is_terminal() or is_germ:
-            ax.text(x, y, f"  {cl.name or ''}",
-                    va="center", ha="left", fontsize=6, zorder=4)
+        # Show short label for all leaf nodes and the germline root.
+        # Internal ancestral nodes are NOT labelled to keep the tree clean.
+        short = display_map.get(cl.name or "", "")
+        if (cl.is_terminal() or is_germ) and short:
+            ax.text(x, y, f"  {short}",
+                    va="center", ha="left", fontsize=7, zorder=4)
 
     # ── legend ────────────────────────────────────────────────────────────
-    # bbox_to_anchor uses FIGURE coordinates (bbox_transform=fig.transFigure)
-    # so the legend position is independent of how far tree labels extend.
-    # x=0.70 = just right of the 68 % axes boundary; y=0.97 = near top.
     handles: List[Line2D] = [
         Line2D([0], [0], marker="o", color="w",
                markerfacecolor=color_map[v],
@@ -209,8 +251,8 @@ def plot_tree(
 
     ax.legend(
         handles=handles,
-        bbox_to_anchor=(0.70, 0.97),       # figure-level coords
-        bbox_transform=fig.transFigure,    # ← key: use figure not axes space
+        bbox_to_anchor=(0.70, 0.97),
+        bbox_transform=fig.transFigure,
         loc="upper left",
         fontsize=6,
         frameon=True,
@@ -220,11 +262,27 @@ def plot_tree(
     )
 
     # ── axes cosmetics ────────────────────────────────────────────────────
-    # Remove ALL four spines → no black frame around the tree.
+    # Remove the frame (all four spines hidden).
     for spine in ax.spines.values():
         spine.set_visible(False)
 
-    ax.set_xlabel("Cumulative mutation distance from germline", labelpad=8)
+    # X-axis: show numeric tick marks for mutation distance.
+    # Use AutoLocator to pick sensible intervals, then format the numbers
+    # with enough decimal places that they are readable at typical branch
+    # length scales (1e-4 to 1e-1).
+    ax.xaxis.set_major_locator(ticker.AutoLocator())
+    ax.xaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=False))
+    ax.ticklabel_format(style="plain", axis="x")
+    ax.tick_params(axis="x", labelsize=7, length=4, color="#555555")
+
+    # Keep only a faint horizontal grid at x-tick positions to help
+    # readers trace values across the wide figure.
+    ax.xaxis.grid(True, linestyle=":", linewidth=0.5,
+                  color="#dddddd", zorder=0)
+    ax.set_axisbelow(True)
+
+    ax.set_xlabel("Cumulative mutation distance from germline",
+                  labelpad=8, fontsize=8)
     ax.set_yticks([])
     ax.tick_params(left=False)
     ax.set_title(title, fontsize=9, pad=10)
@@ -234,4 +292,4 @@ def plot_tree(
         fig.savefig(output_path, dpi=150, bbox_inches="tight")
         plt.close(fig)
 
-    return fig, ax
+    return fig, ax, cell_id_map

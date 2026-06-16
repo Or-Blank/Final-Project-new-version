@@ -174,7 +174,7 @@ class LineageTracer:
             nt, aa = self._diff(ps, cs)
             rows.append({
                 "clone_id":          clone_id,
-                "tree_node":              cl.name,
+                "node":              cl.name,
                 "parent":            par.name,
                 "is_observed":       cl.name in self.by_id and not self.by_id[cl.name].is_germline,
                 "isotype":           getattr(cl, "isotype", "?"),

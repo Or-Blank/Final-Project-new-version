@@ -34,8 +34,8 @@ def close_figures():
 def test_plot_returns_fig_ax(paired_tree):
     _, tree = paired_tree
     result = plot_tree(tree, title="test")
-    assert len(result) == 2
-    fig, ax = result
+    assert len(result) == 3
+    fig, ax, _ = result
     import matplotlib.figure, matplotlib.axes
     assert isinstance(fig, matplotlib.figure.Figure)
     assert isinstance(ax, matplotlib.axes.Axes)
@@ -51,45 +51,45 @@ def test_output_png_written(paired_tree, tmp_path):
 
 def test_color_by_isotype(paired_tree):
     _, tree = paired_tree
-    fig, ax = plot_tree(tree, color_by="isotype")
+    fig, ax, _ = plot_tree(tree, color_by="isotype")
     legend_texts = [t.get_text() for t in ax.get_legend().get_texts()]
     assert any("isotype" in t for t in legend_texts)
 
 
 def test_color_by_sample_id(heavy_tree):
     _, tree = heavy_tree
-    fig, ax = plot_tree(tree, color_by="sample_id")
+    fig, ax, _ = plot_tree(tree, color_by="sample_id")
     legend_texts = [t.get_text() for t in ax.get_legend().get_texts()]
     assert any("sample_id" in t for t in legend_texts)
 
 
 def test_no_shape_by_does_not_crash(paired_tree):
     _, tree = paired_tree
-    fig, ax = plot_tree(tree, shape_by=None)
+    fig, ax, _ = plot_tree(tree, shape_by=None)
     assert fig is not None
 
 
 def test_title_in_figure(paired_tree):
     _, tree = paired_tree
-    fig, ax = plot_tree(tree, title="My Clone ABC")
+    fig, ax, _ = plot_tree(tree, title="My Clone ABC")
     assert "My Clone ABC" in ax.get_title()
 
 
 def test_x_axis_label(paired_tree):
     _, tree = paired_tree
-    _, ax = plot_tree(tree)
+    _, ax, _ = plot_tree(tree)
     assert "mutation" in ax.get_xlabel().lower()
 
 
 def test_leaf_text_artists_present(paired_tree):
     _, tree = paired_tree
-    fig, ax = plot_tree(tree)
+    fig, ax, _ = plot_tree(tree)
     texts = [t.get_text() for t in ax.texts]
     assert len(texts) > 0, "No text labels found on tree plot"
 
 
 def test_germline_included_in_plot(paired_tree):
     _, tree = paired_tree
-    fig, ax = plot_tree(tree)
+    fig, ax, _ = plot_tree(tree)
     labels = [t.get_text().strip() for t in ax.texts]
     assert any("Germline" in l for l in labels)
