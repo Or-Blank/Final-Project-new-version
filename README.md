@@ -70,18 +70,14 @@ The outputs are written to a single folder (default: `bcr_lineage_output/`).
 | `tree_<clone_id>.png` | PNG | Phylogenetic tree for each clone |
 | `mutation_table.xlsx` | Excel | The mutation events, isotypes, cell type and more across all processed clones |
 
-Example of the tree structure:
-
-<img width="425" height="650" alt="image" src="https://github.com/user-attachments/assets/752dfbb7-862a-4431-87c5-cc24752ede08" />
-
-### *The Tree:*
+#### *The Tree:*
 - Nodes are labelled **seq1, seq2, seq3 …** (observed cells, top-to-bottom) and **anc1, anc2 …** (inferred ancestral nodes).
 - Node **colour** encodes isotype (`c_call`) for paired H+L datasets, or tissue of origin (`sample_id`) for heavy-only datasets.
 - Node **shape** encodes cell-type annotation (`cluster_annotated`).
 - The **germline root** is always drawn as a large black square labelled "Germline".
 - The x-axis shows **cumulative mutation distance from the germline**.
 
-### *Mutation table:*
+#### *Mutation table:*
 
 | Column | Description |
 |---|---|
