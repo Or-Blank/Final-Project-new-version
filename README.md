@@ -1,5 +1,5 @@
 # BCR Lineage Tracer (B cell Linage Tree Maker)
-In this project, I intend to create a Python tool for making B cell receptor (BCR) clonal lineage trees from single-cell sequencing data.
+In this project, I created a Python tool for making B cell receptor (BCR) clonal lineage trees from single-cell sequencing data.
 The tool infers the ancestral germline BCR, traces somatic hypermutation (SHM) events across cells, and outputs an annotated phylogenetic tree showing how B cell clones evolved and expanded.
 B cell lineage tracing is a tool for understanding how the immune system builds and refines antibody responses. By capturing the order and location of these mutations, we can get insights into the selection shaping BCR evolution and antibody creation.
 
@@ -26,7 +26,7 @@ As part of this process, the cells accumulate somatic hypermutations (SHM) in th
 I developed this Python script to construct BCR clonal lineage trees based on the fundamental principle of clonal evolution. The tool maps the evolutionary "family history" of B cell clones by rooting each tree in its unmutated common ancestor (germline)—representing the cell’s original state before it encountered an antigen. As these B cells divide during an immune response, they accumulate unique genetic changes through the SHM process. By analyzing the hierarchy of shared mutations, the script reconstructs the branching order of the cells, where the length of each branch reflects the number of genetic changes acquired over time. To ensure high-fidelity results, the code incorporates critical biological constraints such as isotype switching (the irreversible transition between antibody types) and tissue connectivity, allowing for a professional visualization of how immune lineages mature and spread throughout different organs.
 
 ### Input:
-The tool will take an **input of tabular data in .xlsx**  with one row per cell.
+The tool takes an **input of tabular data in .xlsx**  with one row per cell.
 **Column order does not matter**. The tool matches columns by name (case-insensitive) and also recognises common aliases automatically.
 #### *The columns:*
 #### Required columns
