@@ -95,6 +95,8 @@ The outputs are written to a single folder (default: `bcr_lineage_output/`).
 | `number_amino_acid_changes` | Number of amino acid changes |
 | `amino_acid_changes` | Changes list e.g. `K14R` |
 
+* Note: There is a recurring pattern in both the tree and the table where several cell-type annotations appear to represent essentially the same population (e.g., 2‑B cell, 3‑B cell). These are all GC B cells, but they differ slightly in characteristics that are not reflected in the tree or the table and become apparent only in other experiments.
+
 
 ## The technicalities: ##
 The requirements.txt include:
@@ -133,6 +135,7 @@ pytest tests/
 This project is part of the Python Programming Course at the Weizmann Institute of Science.
 
 You can view the course main repository here: https://github.com/Code-Maven/wis-python-course-2026-03
+
 
 ### Sources I used to create the tree script:
 * https://mixcr.com/mixcr/guides/b-cell-lineages-webinar/
