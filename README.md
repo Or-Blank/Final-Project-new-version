@@ -112,18 +112,21 @@ The requirements.txt include:
 
 ### 1. Install dependencies
 
+```bash
 pip install -r requirements.txt
+```
 
 ### 2. Run the project
-
+```bash
 python run_gui.py
-
+```
 This opens a window where you can upload your `.xlsx` file,
 select the clone to analyze, and view the results.
 
 ### 3. Run the tests (optional)
-
-Open the test folder
+```bash
+pytest tests/
+```
 
 
 ### Notes:
@@ -135,182 +138,3 @@ You can view the course main repository here: https://github.com/Code-Maven/wis-
 * https://mixcr.com/mixcr/guides/b-cell-lineages-webinar/
 * https://www.antibodysociety.org/wordpress/wp-content/uploads/2021/11/Immcantation-webinar-slides.pdf
 * Weber, Leah L., et al. "Isotype-aware inference of B cell clonal lineage trees from single-cell sequencing data." Cell Genomics 4.9 (2024).
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
----
-
-## Algorithm overview
-
-1. **Format detection** — if `VDJ_sequence_L` is present and non-empty the dataset is treated as *paired* (H+L concatenated); otherwise *heavy-only*.
-2. **Germline (UCA) construction** — extracted from `germline_alignment_d_mask` if available; otherwise a per-clone positional consensus is computed from the observed sequences.
-3. **Distance matrix** — pairwise alignment-based Hamming distance; handles unequal sequence lengths via global pairwise alignment.
-4. **Neighbor-Joining tree** — built with BioPython's `DistanceTreeConstructor.nj()`; the germline is injected as the outgroup and becomes the tree root.
-5. **Polytomy collapsing** — branches shorter than the collapse threshold (default `1e-6`) are merged into polytomies, reflecting the biological reality that short BCR sequences often cannot support full bifurcating resolution.
-6. **Isotype-aware NNI refinement** *(optional, default on)* — a local nearest-neighbour interchange search penalises parent→child edges that violate the irreversibility of class-switch recombination (e.g. IgG → IgM is disallowed).
-7. **Fitch parsimony reconstruction** — ancestral sequences are inferred at every internal node so the mutation table covers all edges, not just terminal branches.
-8. **Visualisation and export** — tree PNG and mutation table written to the output directory.
-
----
-
-## Project structure
-
-```
-Final Project new version/
-│
-├── run_gui.py                      ← launch the GUI (recommended)
-├── run_cli.py                      ← command-line entry point
-├── requirements.txt
-│
-├── bcr_lineage_tracer/             ← package (do not run files inside directly)
-│   ├── constants.py                   Isotype CSR order, gap chars, marker cycle
-│   ├── loader.py                      BCRTreeLoader — reads xlsx, detects format,
-│   │                                  resolves columns, builds germlines
-│   ├── tracer.py                      LineageTracer — NJ tree, Fitch parsimony,
-│   │                                  polytomy collapse, isotype NNI
-│   ├── visualization.py               plot_tree() — matplotlib cladogram
-│   ├── pipeline.py                    run() — orchestrates all steps, writes outputs
-│   ├── gui.py                         Tkinter graphical interface
-│   ├── __main__.py                    CLI argument parser
-│   └── __init__.py                    Public API re-exports
-│
-└── tests/
-    ├── conftest.py                    Shared fixtures (no patient data required)
-    ├── test_loader.py                 32 tests — column detection, format detection,
-    │                                  germline construction, IMGT ungapping,
-    │                                  error and warning handling
-    ├── test_tracer.py                 24 tests — tree structure, polytomies,
-    │                                  isotype NNI, Fitch reconstruction,
-    │                                  mutation table, distances
-    ├── test_pipeline.py               12 tests — end-to-end integration
-    └── test_visualization.py          10 tests — matplotlib output, legend, PNG
-```
-
----
-
-## Installation
-
-**Python 3.9 or higher required.**
-
-### 1. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-> **tkinter** (required for the GUI) ships with the official Python installer on Windows and macOS.
-> On Linux you may need to install it separately:
-> ```bash
-> # Ubuntu / Debian
-> sudo apt install python3-tk
->
-> # Fedora
-> sudo dnf install python3-tkinter
-> ```
-
-### 2. Run the project
-
-**Option A — Graphical Interface (recommended)**
-
-```bash
-python run_gui.py
-```
-
-This opens the GUI where you can:
-- Browse for your `.xlsx` file
-- View how many clones were detected and how many are eligible (≥ 2 cells)
-- Select a specific clone from a searchable scrollable list, or process all
-- Adjust advanced options (see below)
-- Watch the live log and open the output folder when done
-
-**Option B — Command Line**
-
-```bash
-python run_cli.py --input your_file.xlsx
-```
-
-Common options:
-
-| Flag | Default | Description |
-|---|---|---|
-| `--input` / `-i` | *(required)* | Path to `.xlsx` input file |
-| `--output-dir` / `-o` | `bcr_lineage_output` | Folder for all output files |
-| `--clone-id` | *(all clones)* | Process only one specific clone |
-| `--max-clones N` | *(all)* | Process at most N clones — useful for quick tests |
-| `--collapse-threshold` | `1e-6` | Branch-length cutoff for polytomy collapsing |
-| `--no-isotype-refine` | *(refine on)* | Disable isotype-aware NNI |
-| `--gui` | — | Launch the GUI instead |
-
-### 3. Run the tests
-
-```bash
-pip install pytest
-pytest tests/
-```
-
-All 78 tests run from synthetic in-memory data — no patient files needed.
-
----
-
-## Advanced options explained
-
-### Max clones *(default: all)*
-Limits how many clonal families are processed in one run. Leave blank to process every clone. Useful for quick testing: set to `5` to verify the pipeline works on your file before committing to a full run.
-
-### Collapse threshold *(default: `1e-6`)*
-BCR sequences are short (~300–700 bp) and differ from each other by only a few mutations, so the tree algorithm often cannot distinguish whether two cells diverged before or after a mutation. Branches shorter than this threshold are collapsed into polytomies — which is biologically more honest than forcing an arbitrary ordering. The default removes only floating-point noise. Increase (e.g. `0.001`) for a simpler, more collapsed tree; decrease to `0` to keep every branch.
-
-### Isotype-aware NNI refinement *(default: on)*
-After building the initial tree from sequence distances, this step checks for parent→child edges that imply a biologically impossible isotype transition. Class-switch recombination (CSR) is irreversible — a cell that has switched to IgG cannot revert to IgM. The refinement performs local swaps to fix such violations, using the sequence signal as a tiebreaker so the topology changes as little as possible. Turn off if your file has no `c_call` column, or if you want the unmodified sequence-distance tree for comparison.
-
----
-
-## Requirements
-
-```
-biopython>=1.80
-matplotlib>=3.6
-numpy>=1.23
-openpyxl>=3.0
-pandas>=1.5
-```
-
----
-
-## Biological background
-
-This tool focuses on a stage of B cell biology that is **less commonly explored** in existing pipelines: the **within-clone evolutionary dynamics** after antigen encounter.
-
-During a germinal centre (GC) reaction, B cells undergo rapid somatic hypermutation (SHM) and selection. Cells with beneficial mutations in their BCR expand; others are eliminated. Simultaneously, some cells undergo class-switch recombination (CSR), changing from IgM to IgG, IgA, or IgE to alter effector function.
-
-By reconstructing the lineage tree of a clone — the branching order of cells and their accumulated mutations — this tool makes it possible to:
-
-- Trace the **trajectory of affinity maturation** from the naïve germline to mature antibody-secreting plasma cells
-- Identify **convergent evolution** (independent mutations at the same position in separate branches)
-- Map **tissue migration** between organs (when `sample_id` encodes anatomical sites)
-- Pinpoint the **branching point at which CSR occurred** in the lineage
-
-The approach is grounded in methods from the Immcantation framework (Dowser / IgPhyML) and draws on concepts from TRIBAL (Tree Inference of B cell Clonal Lineages) for isotype-aware refinement.
-
-
-*‏
-
-
-
-
