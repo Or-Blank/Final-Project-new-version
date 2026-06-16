@@ -175,7 +175,9 @@ _REQUIRED_COLS_TEXT = (
     "      Unique cell identifier / barcode.\n"
     "      Falls back to row number if absent.\n"
     "      Aliases: barcode, sequence_id\n\n"
-    "Column ORDER does not matter.\n"
+    "ORDER OF COLUMNS\n"
+    "─────────────────────────────────────────\n"
+    "Column order DOES NOT matter.\n"
     "IMGT-gapped sequences (dots/dashes) are handled automatically."
 )
 
@@ -184,12 +186,12 @@ _MAX_CLONES_TEXT = (
     "Limits how many clonal families are processed in one run.\n\n"
     "IS IT NECESSARY?\n\n"
     "No. Leave blank to process every eligible clone in the file.\n\n"
-    "WHEN TO USE IT\n\n"
+    "WHEN TO USE IT:\n\n"
     "  • Quick test: set to 5 to check the pipeline works on\n"
     "    your file before committing to a full run.\n"
     "  • Large files (1000+ clones) may take several minutes;\n"
     "    a small limit lets you preview results immediately.\n\n"
-    "EXAMPLE\n\n"
+    "EXAMPLE:\n\n"
     "  5     →  only the first 5 eligible clones are processed.\n"
     "  blank →  all eligible clones."
 )
@@ -201,18 +203,16 @@ _COLLAPSE_TEXT = (
     "often cannot decide whether two cells split before or after a\n"
     "mutation — it produces a near-zero branch length between them.\n\n"
     "This setting collapses those ambiguous branches into a single\n"
-    "fork (polytomy), which is biologically more honest than forcing\n"
-    "a fake ordering.\n\n"
+    "fork (polytomy), which is biologically more honest than forcing a fake ordering.\n\n"
     "IS IT NECESSARY?\n\n"
     "No. The default (1e-6) is appropriate for virtually all BCR\n"
-    "datasets and should not be changed unless you have a specific\n"
-    "reason.\n\n"
-    "WHEN TO CHANGE IT\n\n"
+    "datasets and should not be changed unless you have a specific reason.\n\n"
+    "WHEN TO CHANGE IT:\n\n"
     "  • Increase (e.g. 0.001) if trees look too bushy and you want\n"
     "    to merge more branches.\n"
     "  • Decrease (e.g. 0) to keep every branch even if the\n"
     "    resolution is statistically uncertain.\n\n"
-    "EXAMPLE VALUES\n\n"
+    "EXAMPLE VALUES:\n\n"
     "  1e-6  →  default, removes floating-point noise only\n"
     "  0.001 →  aggressive collapsing, simpler tree\n"
     "  0     →  no collapsing at all"
@@ -221,21 +221,16 @@ _COLLAPSE_TEXT = (
 _NNI_TEXT = (
     "WHAT IT DOES?\n\n"
     "After building the initial tree from sequence distances, this\n"
-    "step checks whether any parent→child edges imply a biologically\n"
-    "impossible isotype switch.\n\n"
+    "step checks whether any parent→child edges imply a biologically impossible isotype switch.\n\n"
     "B cells can only switch isotype in ONE direction:\n\n"
-    "  IgM → IgD → IgG3 → IgG1 → IgA1 → IgG2 → IgG4 → IgE → IgA2\n\n"
+    "IgM → IgD → IgG3 → IgG1 → IgA1 → IgG2 → IgG4 → IgE → IgA2\n\n"
     "This is called Class Switch Recombination (CSR) and is\n"
     "irreversible. If the sequence-based tree places an IgG cell as\n"
     "the parent of an IgM cell, that is a mistake.\n\n"
-    "The refinement performs local swaps (NNI = Nearest-Neighbour\n"
-    "Interchange) to fix those violations, using the sequence signal\n"
-    "as a tiebreaker so the tree is not changed more than necessary.\n\n"
+    "The refinement performs local swaps (NNI = Nearest-Neighbour Interchange) to fix those violations, using the sequence signal as a tiebreaker so the tree is not changed more than necessary.\n\n"
     "IS IT NECESSARY?\n\n"
-    "Recommended ON. The improvement is small when the sequence\n"
-    "signal is strong, but useful when many cells share the same\n"
-    "isotype or when sequences are very similar.\n\n"
-    "WHEN TO TURN IT OFF\n\n"
+    "Recommended ON. The improvement is small when the sequence signal is strong, but useful when many cells share the same isotype or when sequences are very similar.\n\n"
+    "WHEN TO TURN IT OFF:\n\n"
     "  • Your file has no c_call / isotype column.\n"
     "  • You want the pure sequence-based tree for comparison.\n"
     "  • Speed: for very large clones (500+ cells) this step\n"
@@ -277,7 +272,7 @@ def launch_gui() -> None:
     # ── header bar ────────────────────────────────────────────────────────
     hdr = tk.Frame(root, bg="#1a3a5c", height=58)
     hdr.pack(fill="x")
-    tk.Label(hdr, text="🧬  BCR Lineage Tracer",
+    tk.Label(hdr, text="BCR Lineage Tracer 🧬🌳",
              font=("Helvetica", 18, "bold"),
              fg="white", bg="#1a3a5c").pack(side="left", padx=16, pady=10)
     tk.Label(hdr, text="B cell clonal lineage tree maker",
