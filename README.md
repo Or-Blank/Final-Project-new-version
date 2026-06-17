@@ -164,7 +164,8 @@ Final-project-BCR-Lineage-Tracer-Final-Version/
 │
 └── Tests/
     ├── conftest.py                    Shared fixtures
-    ├── test_loader.py                 32 tests — column detection, format detection, germline construction, IMGT ungapping, error and warning handling                          ├── test_tracer.py                 24 tests — tree structure, polytomies, isotype NNI, Fitch reconstruction, mutation table, distances
+    ├── test_loader.py                 32 tests — column detection, format detection, germline construction, IMGT ungapping, error and warning handling
+    ├── test_tracer.py                 24 tests — tree structure, polytomies, isotype NNI, Fitch reconstruction, mutation table, distances
     ├── test_pipeline.py               12 tests — end-to-end integration
     └── test_visualization.py          10 tests — matplotlib output, legend, PNG
 ```                             
