@@ -110,7 +110,7 @@ Since the full experimental Excel file cannot be shared (ongoing research in the
 
 **The full Excel file can be shared privately if required or needed for the assessment of the project.**
 
-$\color{Green}{\The full Excel file can be shared privately if required or needed for the assessment of the project.}$
+$\color{Green}{The full Excel file can be shared privately if required or needed for the assessment of the project.}$
 
 
 ## The technicalities ##
