@@ -106,7 +106,7 @@ The requirements.txt include:
 * openpyxl
 * pandas
 * pytest
-* tkinter (for GUI )
+* tkinter (for GUI)
 
 ## Installation and running the project
 
