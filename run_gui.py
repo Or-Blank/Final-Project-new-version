@@ -15,7 +15,6 @@ Running gui.py directly breaks that context — this file restores it.
 import sys
 import os
 
-# Make sure the project root is on sys.path so "bcr_lineage_tracer" is found
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from BCR_lineage_tracer.gui import launch_gui

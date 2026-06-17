@@ -230,7 +230,7 @@ def test_sequence_length_consistent(paired_tree):
 REQUIRED_COLS = {
     "clone_id", "node", "parent", "is_observed",
     "isotype", "sample_id", "cluster_annotated",
-    "branch_length", "n_nt", "nt_changes", "n_aa", "aa_changes",
+    "branch_length", "number_nucleotides_changes", "nucleotides_changes", "number_amino_acid_changes", "amino_acid_changes",
 }
 
 def test_mutation_table_columns(paired_tree):
@@ -262,10 +262,10 @@ def test_nt_changes_format(paired_tree):
     tracer, _ = paired_tree
     df = tracer.mutation_table()
     pattern = re.compile(r"^[ACGTN]\d+[ACGTN]$")
-    for entry in df["nt_changes"]:
+    for entry in df["nucleotides_changes"]:
         for change in (entry.split(";") if entry else []):
             assert pattern.match(change), \
-                f"Unexpected nt_change format: '{change}'"
+                f"Unexpected nucleotides_changes format: '{change}'"
 
 
 def test_mutation_table_has_rows(paired_tree):
