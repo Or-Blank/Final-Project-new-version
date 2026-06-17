@@ -130,6 +130,39 @@ select the clone to analyze, and view the results.
 pytest tests/
 ```
 
+## Project structure
+
+```
+Final-project-BCR-Lineage-Tracer-Final-Version/
+│
+├── run_gui.py                      ← launch the GUI (recommended)
+├── requirements.txt
+│
+├── BCR_lineage_tracer/             
+│   ├── constants.py                   Isotype CSR order, gap chars, marker cycle
+│   ├── loader.py                      BCRTreeLoader — reads xlsx, detects format,
+│   │                                  resolves columns, builds germlines
+│   ├── tracer.py                      LineageTracer — NJ tree, Fitch parsimony,
+│   │                                  polytomy collapse, isotype NNI
+│   ├── visualization.py               plot_tree() — matplotlib cladogram
+│   ├── pipeline.py                    run() — orchestrates all steps, writes outputs
+│   ├── gui.py                         Tkinter graphical interface
+│   ├── main.py                        CLI argument parser
+│   └── init.py                        Public API re-exports
+│
+└── tests/
+    ├── conftest.py                    Shared fixtures
+    ├── test_loader.py                 32 tests — column detection, format detection,
+    │                                  germline construction, IMGT ungapping,
+    │                                  error and warning handling
+    ├── test_tracer.py                 24 tests — tree structure, polytomies,
+    │                                  isotype NNI, Fitch reconstruction,
+    │                                  mutation table, distances
+    ├── test_pipeline.py               12 tests — end-to-end integration
+    └── test_visualization.py          10 tests — matplotlib output, legend, PNG
+```
+
+
 
 ### Notes:
 This project is part of the Python Programming Course at the Weizmann Institute of Science.
