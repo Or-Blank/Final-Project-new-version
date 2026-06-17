@@ -4,7 +4,7 @@ The tool infers the ancestral germline BCR, traces somatic hypermutation (SHM) e
 B cell lineage tracing is a tool for understanding how the immune system builds and refines antibody responses. By capturing the order and location of these mutations, we can get insights into the selection shaping BCR evolution and antibody creation.
 
 
-## Background: ##
+## Background ##
 * During an immune response, B cells in our body undergo clonal expansion and affinity maturation in order to produce a large pool of high‑affinity, antigen‑specific antibodies that can neutralize the pathogens more effectively.
 As part of this process, the cells accumulate somatic hypermutations (SHM) in their BCR sequences, specifically in the V(D)J region, to improve the antigen.
 
@@ -21,11 +21,11 @@ As part of this process, the cells accumulate somatic hypermutations (SHM) in th
   -**Disease & Vaccine Research:** Analyzing tree shapes reveals whether an immune response is generating new, evolving antibodies or just re-stimulating older, less effective memory cells.
 
 
-## The tool: ##
-### How is it working:
+## The tool ##
+### How is it working
 I developed this Python script to construct BCR clonal lineage trees based on the fundamental principle of clonal evolution. The tool maps the evolutionary "family history" of B cell clones by rooting each tree in its unmutated common ancestor (germline)—representing the cell’s original state before it encountered an antigen. As these B cells divide during an immune response, they accumulate unique genetic changes through the SHM process. By analyzing the hierarchy of shared mutations, the script reconstructs the branching order of the cells, where the length of each branch reflects the number of genetic changes acquired over time. To ensure high-fidelity results, the code incorporates critical biological constraints such as isotype switching (the irreversible transition between antibody types) and tissue connectivity, allowing for a professional visualization of how immune lineages mature and spread throughout different organs.
 
-### Input:
+### Input
 The tool takes an **input of tabular data in .xlsx**  with one row per cell.
 **Column order does not matter**. The tool matches columns by name (case-insensitive) and also recognises common aliases automatically.
 #### *The columns:*
@@ -62,7 +62,7 @@ The tool takes an **input of tabular data in .xlsx**  with one row per cell.
   
 * The tool tries a list of recognised aliases for each role, so many non-standard column names are detected automatically.
 
-### Output:
+### Output
 The outputs are written to a single folder (default: `bcr_lineage_output/`).
 
 | File | Format | Description |
@@ -70,14 +70,14 @@ The outputs are written to a single folder (default: `bcr_lineage_output/`).
 | `tree_<clone_id>.png` | PNG | Phylogenetic tree for each clone |
 | `mutation_table.xlsx` | Excel | The mutation events, isotypes, cell type and more across all processed clones |
 
-#### *The Tree:*
+#### *The Tree*
 - Nodes are labelled **seq1, seq2, seq3 …** (observed cells, top-to-bottom) and **anc1, anc2 …** (inferred ancestral nodes).
 - Node **colour** encodes isotype (`c_call`) for paired H+L datasets, or tissue of origin (`sample_id`) for heavy-only datasets.
 - Node **shape** encodes cell-type annotation (`cluster_annotated`).
 - The **germline root** is always drawn as a large black square labelled "Germline".
 - The x-axis shows **cumulative mutation distance from the germline**.
 
-#### *The Mutation table:*
+#### *The Mutation table*
 
 | Column | Description |
 |---|---|
@@ -97,7 +97,7 @@ The outputs are written to a single folder (default: `bcr_lineage_output/`).
 
 * Note: There is a recurring pattern in both the tree and the table where several cell-type annotations appear to represent essentially the same population (e.g., 2‑B cell, 3‑B cell). These are all GC B cells, but they differ slightly in characteristics that are not reflected in the tree or the table and become apparent only in other experiments.
 
-### Data to use:
+### Data to use
 **1. "Public" RNA‑seq dataset** (in the folder Examples and data to test):
 A sample table derived from single‑cell RNA‑sequencing of primary‑tumor B cells and their B‑cell receptors (BCRs), the data set from Day05 assignment.
 
@@ -111,7 +111,7 @@ Since the full experimental Excel file cannot be shared (ongoing research in the
 **The full Excel file can be shared privately if required or needed for the assessment of the project.**
 
 
-## The technicalities: ##
+## The technicalities ##
 The requirements include:
 * biopython
 * matplotlib
@@ -170,7 +170,7 @@ Final-project-BCR-Lineage-Tracer-Final-Version/
     └── test_visualization.py          10 tests — matplotlib output, legend, PNG
 ```                             
                                                          
-## Notes: ##
+## Notes ##
 This project is part of the Python Programming Course at the Weizmann Institute of Science.
 
 You can view the course main repository here: https://github.com/Code-Maven/wis-python-course-2026-03
