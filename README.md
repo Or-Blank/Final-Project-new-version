@@ -135,7 +135,7 @@ pytest tests/
 ```
 Final-project-BCR-Lineage-Tracer-Final-Version/
 │
-├── run_gui.py                      ← launch the GUI (recommended)
+├── run_gui.py                         launch the GUI 
 ├── requirements.txt
 │
 ├── BCR_lineage_tracer/             
