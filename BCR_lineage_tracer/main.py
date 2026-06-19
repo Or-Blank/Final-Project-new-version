@@ -1,14 +1,8 @@
 """
-__main__.py
+main.py
 ===========
 Command-line interface for BCR Lineage Tracer.
 
-Run as a module:
-    python -m bcr_lineage_tracer --input data.xlsx --output-dir results/
-
-Or launch the GUI:
-    python -m bcr_lineage_tracer --gui
-    python -m bcr_lineage_tracer          # no args → GUI
 """
 
 import argparse

@@ -3,25 +3,6 @@ visualization.py
 ================
 plot_tree() — renders a BCR clonal lineage tree as a rectangular cladogram.
 
-Node labels
------------
-Observed leaf nodes are shown as  seq1, seq2, seq3 …  (assigned in the order
-leaves appear top-to-bottom in the tree).  Internal inferred-ancestor nodes
-are labelled  anc1, anc2 …  The germline root always shows "Germline".
-
-The mapping  {original_cell_id → short_label}  is returned as a third element
-of the tuple so the pipeline can add it to the Excel output.
-
-X-axis
-------
-The cumulative mutation-distance axis now shows numeric tick marks so readers
-can read off exact distances from the figure.
-
-Visual design
--------------
-- No axes frame (all four spines hidden).
-- Legend anchored in figure coordinates so it never overlaps tree labels.
-- Axes occupy the left 68 % of the figure; the remaining 32 % is label + legend space.
 """
 
 from __future__ import annotations

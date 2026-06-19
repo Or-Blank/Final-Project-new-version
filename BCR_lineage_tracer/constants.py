@@ -3,8 +3,6 @@ constants.py
 ============
 Biological and visual constants used across the BCR Lineage Tracer package.
 
-Nothing here depends on user data or any other project module — safe to
-import anywhere without triggering side effects.
 """
 
 from typing import Dict
@@ -16,7 +14,7 @@ from typing import Dict
 # A valid parent → child edge requires:
 #   child_rank >= parent_rank
 # i.e. you can switch *forward* (IgM → IgG) but never backward (IgG → IgM).
-#
+
 # Aliases cover both IMGT-style names (IGHG1) and short names (IGG1) and
 # the mouse-specific subclasses (IGHG2B, IGHG2C) present in the heavy-only
 # dataset.  Unknown isotypes get rank 3 (neutral mid-point) so they never

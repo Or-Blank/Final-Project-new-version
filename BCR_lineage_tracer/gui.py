@@ -1,19 +1,3 @@
-"""
-gui.py
-======
-Tkinter GUI for BCR Lineage Tracer.
-
-Changes in this version
------------------------
-1.  Visualization: black frame around tree removed (in visualization.py).
-2.  Visualization: legend pushed further right; figure auto-widens (viz.py).
-3.  GUI: every Advanced Option now uses a consistent ℹ️ button that opens a
-    popup — no more mix of hover tooltips and info buttons.
-4.  Clone picker: only shows clones with >= 2 cells; singletons are hidden.
-5.  Isotype-aware NNI checkbox displays ✓ / ☐ instead of the OS-default
-    symbol (which appears as an X on many Windows themes).
-"""
-
 from __future__ import annotations
 
 import os
@@ -33,8 +17,6 @@ from .loader import BCRTreeLoader
 from .pipeline import run as run_pipeline
 
 
-# ── Reusable ℹ️ button ────────────────────────────────────────────────────────
-
 def _info_btn(parent: tk.Widget, popup_title: str, popup_text: str) -> tk.Label:
     """Return a clickable  ℹ️  label that opens a messagebox popup."""
     lbl = tk.Label(parent, text=" ℹ️ ", font=("Helvetica", 10),
@@ -42,8 +24,6 @@ def _info_btn(parent: tk.Widget, popup_title: str, popup_text: str) -> tk.Label:
     lbl.bind("<Button-1>", lambda _e: messagebox.showinfo(popup_title, popup_text))
     return lbl
 
-
-# ── Clone picker popup ────────────────────────────────────────────────────────
 
 def _open_clone_picker(parent: tk.Tk, clone_sizes: dict,
                        current: str, on_select) -> None:
